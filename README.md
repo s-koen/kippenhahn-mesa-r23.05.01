@@ -1,5 +1,6 @@
-# mkipp
-Kippenhahn plotter for MESA. BEWARE: this README might be out of date! In case the examples don't work refer to the example.py file in the repository.
+# kippenhahn for mesa r23.05.01
+
+Kippenhahn plotter for MESA r23.05.1, modified from https://github.com/orlox/mkipp/blob/master/mkipp.py. BEWARE: this README might be out of date! In case the examples don't work refer to the example.py file in the repository.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

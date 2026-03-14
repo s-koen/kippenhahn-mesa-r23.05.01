@@ -4,8 +4,8 @@ Prehistory: SimpleMesaKippy.py, Author: Alfred Gautschy /23.VIII.2012
 
             Kippy.py, Author: Pablo Marchant /13.V.2013
 
-            MKippi.py, Author: Matteo Cantiello /V.2013 (Added LOSSES. Color/Line Style inspired by convplot.pro IDL routine of A.Heger) 
-                                                /VI.2013 (Added RADIUS, TIME and NORMALIZE Options. OMEGA Allows to plot w-contours)   
+            MKippi.py, Author: Matteo Cantiello /V.2013 (Added LOSSES. Color/Line Style inspired by convplot.pro IDL routine of A.Heger)
+                                                /VI.2013 (Added RADIUS, TIME and NORMALIZE Options. OMEGA Allows to plot w-contours)
                                                 /VII.2013 (Tentatively added Rotational diff. coefficients,conv. velocities and Equipartition B-field)
 
                                                 (most of these were removed and replaced with flexible plotting options)
@@ -14,71 +14,82 @@ Prehistory: SimpleMesaKippy.py, Author: Alfred Gautschy /23.VIII.2012
                                                 /III.2014 (enhancement of mixing regions ploting to deal with holes and merging regions)
                                                 /IV.2015 stopped listing enhancements
 
-Requirements: history.data and profiles.data containing 
+Requirements: history.data and profiles.data containing
               History (star_age,model_number,star_mass,photosphere_r,mixing_regions,mix_relr_regions)
               Profile (mass,radius,eps_nuc)
 """
+
 import numpy as np
 from math import log10, pi
 from mesa_data import *
 from kipp_data import *
 from collections import namedtuple
 
-#matplotlib specifics
+# matplotlib specifics
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 
-# Create contour levels array (TBD: Need to be improved)
-def get_levels_linear(min,max,n_levels):
-    delta = (max-min)/n_levels
-    levels = np.arange(min-delta,max+delta,delta)
-    return levels;
-    
-def get_levels_log(min,max,n_levels):
-    max = int(max)+1
-    min = int(round(min,2))-1
-    levels = range(0,max+1)
-    return levels;
 
-def default_extractor(identifier, log10_on_data, prof, return_data_columns = False):
+# Create contour levels array (TBD: Need to be improved)
+def get_levels_linear(min, max, n_levels):
+    delta = (max - min) / n_levels
+    levels = np.arange(min - delta, max + delta, delta)
+    return levels
+
+
+def get_levels_log(min, max, n_levels):
+    max = int(max) + 1
+    min = int(round(min, 2)) - 1
+    levels = range(0, max + 1)
+    return levels
+
+
+def default_extractor(identifier, log10_on_data, prof, return_data_columns=False):
     if return_data_columns:
         return [identifier]
     if log10_on_data:
-        return np.log10(abs(prof.get(identifier))+1e-99)
+        return np.log10(abs(prof.get(identifier)) + 1e-99)
     else:
         return prof.get(identifier)
 
-#properties of the plotter
+
+# properties of the plotter
 class Kipp_Args:
-    def __init__(self,
-            logs_dirs = ['LOGS'],
-            profile_paths = [],
-            history_paths = [],
-            clean_data = True,
-            extra_history_cols = [],
-            identifier = "eps_nuc",
-            extractor = default_extractor,
-            log10_on_data = True,
-            contour_colormap = plt.get_cmap("Blues"),
-            levels = [],
-            log_levels = True,
-            num_levels = 8,
-            xaxis = "model_number",
-            xaxis_divide = 1.0,
-            time_units = "Myr",
-            function_on_xaxis = lambda x: x,
-            yaxis = "mass",
-            yaxis_normalize = False,
-            show_conv = True, show_therm = True, show_semi = True, show_over = True, show_rot = False,
-            core_masses = ["He","C","O"],
-            yresolution = 1000,
-            mass_tolerance = 0.0000001,
-            radius_tolerance = 0.0000001,
-            decorate_plot = True,
-            show_plot = False,
-            save_file = True,
-            save_filename = "Kippenhahn.png",
-            xlims = None):
+    def __init__(
+        self,
+        logs_dirs=["LOGS"],
+        profile_paths=[],
+        history_paths=[],
+        clean_data=True,
+        extra_history_cols=[],
+        identifier="eps_nuc",
+        extractor=default_extractor,
+        log10_on_data=True,
+        contour_colormap=plt.get_cmap("Blues"),
+        levels=[],
+        log_levels=True,
+        num_levels=8,
+        xaxis="model_number",
+        xaxis_divide=1.0,
+        time_units="Myr",
+        function_on_xaxis=lambda x: x,
+        yaxis="mass",
+        yaxis_normalize=False,
+        show_conv=True,
+        show_therm=True,
+        show_semi=True,
+        show_over=True,
+        show_rot=False,
+        core_masses=["He", "C", "O"],
+        yresolution=1000,
+        mass_tolerance=0.0000001,
+        radius_tolerance=0.0000001,
+        decorate_plot=True,
+        show_plot=False,
+        save_file=True,
+        save_filename="Kippenhahn.png",
+        xlims=None,
+    ):
         """Initializes properties for a Kippenhahn plot
 
         Note:
@@ -159,23 +170,23 @@ class Kipp_Args:
         self.save_file = save_file
         self.save_filename = save_filename
         self.xlims = xlims
-        
-        #Fill profile and history names if unspecified
+
+        # Fill profile and history names if unspecified
         self.profile_paths = profile_paths
         if len(self.profile_paths) == 0:
-            self.profile_paths = get_profile_paths(logs_dirs = self.logs_dirs)
+            self.profile_paths = get_profile_paths(logs_dirs=self.logs_dirs)
 
         self.history_paths = history_paths
         if len(self.history_paths) == 0:
             self.history_paths = []
             for log_dir in self.logs_dirs:
-                self.history_paths.append(log_dir+"/history.data")
+                self.history_paths.append(log_dir + "/history.data")
 
-        self.xyz_data = get_xyz_data(self.profile_paths, self, xlims = xlims)
-        self.mixing_zones = get_mixing_zones(self.history_paths, self, xlims = xlims)
-                
+        self.xyz_data = get_xyz_data(self.profile_paths, self, xlims=xlims)
+        self.mixing_zones = get_mixing_zones(self.history_paths, self, xlims=xlims)
 
-#kipp_plot: Plots a Kippenhahn diagram into the matplotlib axis given. No decoration
+
+# kipp_plot: Plots a Kippenhahn diagram into the matplotlib axis given. No decoration
 #           done (i.e. axis labeling or colorbars). Returns
 def kipp_plot(kipp_args, axis=None):
     xaxis_divide = kipp_args.xaxis_divide
@@ -193,69 +204,93 @@ def kipp_plot(kipp_args, axis=None):
 
     xyz_data = kipp_args.xyz_data
 
-    #only plot if there is data
+    # only plot if there is data
     if xyz_data.Z.size > 0:
-        #Get levels if undefined
+        # Get levels if undefined
         levels = kipp_args.levels
         if len(levels) == 0:
             if kipp_args.log_levels:
-                levels = get_levels_log(np.nanmin(xyz_data.Z[:,:]), np.nanmax(xyz_data.Z[:,:]), \
-                        kipp_args.num_levels)
+                levels = get_levels_log(
+                    np.nanmin(xyz_data.Z[:, :]),
+                    np.nanmax(xyz_data.Z[:, :]),
+                    kipp_args.num_levels,
+                )
             else:
-                levels = get_levels_linear(np.nanmin(xyz_data.Z[:,:]), np.nanmax(xyz_data.Z[:,:]), \
-                        kipp_args.num_levels)
-        #make plot
-        contour_plot = axis.contourf(xyz_data.X, xyz_data.Y, xyz_data.Z[:,:], \
-                    cmap=kipp_args.contour_colormap, levels=levels, antialiased = False)
+                levels = get_levels_linear(
+                    np.nanmin(xyz_data.Z[:, :]),
+                    np.nanmax(xyz_data.Z[:, :]),
+                    kipp_args.num_levels,
+                )
+        # make plot
+        contour_plot = axis.contourf(
+            xyz_data.X,
+            xyz_data.Y,
+            xyz_data.Z[:, :],
+            cmap=kipp_args.contour_colormap,
+            levels=levels,
+            antialiased=False,
+        )
     else:
         print("No profile data to plot!")
-        contour_plot = axis.contourf([[None,None]], [[None,None]], [[None,None]], \
-                    cmap=kipp_args.contour_colormap, antialiased = False)
+        contour_plot = axis.contourf(
+            [[None, None]],
+            [[None, None]],
+            [[None, None]],
+            cmap=kipp_args.contour_colormap,
+            antialiased=False,
+        )
 
     mixing_zones = kipp_args.mixing_zones
 
-    for i,zone in enumerate(mixing_zones.zones):
+    for i, zone in enumerate(mixing_zones.zones):
         color = ""
-        #Convective mixing
+        # Convective mixing
         if mixing_zones.mix_types[i] == 1 and kipp_args.show_conv:
             color = "Chartreuse"
             hatch = "//"
-            line  = 1
-        #Overshooting 
-        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
+            line = 1
+        # Overshooting
+        elif mixing_zones.mix_types[i] == 2 and kipp_args.show_over:
             color = "purple"
             hatch = "x"
-            line  = 1
-        #Semiconvective mixing
-        elif mixing_zones.mix_types[i] == 4 and kipp_args.show_semi:
+            line = 1
+        # Semiconvective mixing
+        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_semi:
             color = "red"
             hatch = "\\\\"
-            line  = 1
-        #Thermohaline mixing
-        elif mixing_zones.mix_types[i] == 5 and kipp_args.show_therm:
-            color = "Gold" #Salmon
+            line = 1
+        # Thermohaline mixing
+        elif mixing_zones.mix_types[i] == 4 and kipp_args.show_therm:
+            color = "Gold"  # Salmon
             hatch = "||"
-            line  = 1
-        #Rotational mixing
-        elif mixing_zones.mix_types[i] == 6 and kipp_args.show_rot:
+            line = 1
+        # Rotational mixing
+        elif mixing_zones.mix_types[i] == 5 and kipp_args.show_rot:
             color = "brown"
             hatch = "*"
-            line  = 1
-        #Anonymous mixing
-        else: 
+            line = 1
+        # Anonymous mixing
+        else:
             color = "white"
             hatch = " "
             line = 0
-        axis.add_patch(PathPatch(zone, fill=False, hatch = hatch, edgecolor=color, linewidth=line))
+        axis.add_patch(
+            PathPatch(zone, fill=False, hatch=hatch, edgecolor=color, linewidth=line)
+        )
 
-    #limit x_coords to data of contours and add line at stellar surface
+    # limit x_coords to data of contours and add line at stellar surface
     for i, x_coord in enumerate(mixing_zones.x_coords):
         if x_coord > xyz_data.xlims[1]:
             break
-    #I also fill with white above the plot to cover any remainer of the contour plot
-    axis.fill_between(mixing_zones.x_coords, max(mixing_zones.y_coords), mixing_zones.y_coords, color = "w")
+    # I also fill with white above the plot to cover any remainer of the contour plot
+    axis.fill_between(
+        mixing_zones.x_coords,
+        max(mixing_zones.y_coords),
+        mixing_zones.y_coords,
+        color="w",
+    )
     axis.plot(mixing_zones.x_coords[:i], mixing_zones.y_coords[:i], "k-")
-    #add core masses
+    # add core masses
     if kipp_args.yaxis == "mass":
         for core_mass in kipp_args.core_masses:
             if core_mass == "He":
@@ -268,29 +303,34 @@ def kipp_plot(kipp_args, axis=None):
                 field_name = "o_core_mass"
                 color = "g:"
             for history in mixing_zones.histories:
-                axis.plot(kipp_args.function_on_xaxis(history.get(kipp_args.xaxis) / xaxis_divide), \
-                        history.get(field_name), color)
+                axis.plot(
+                    kipp_args.function_on_xaxis(
+                        history.get(kipp_args.xaxis) / xaxis_divide
+                    ),
+                    history.get(field_name),
+                    color,
+                )
 
     if kipp_args.decorate_plot:
-        #add colorbar
-        bar = plt.colorbar(contour_plot,pad=0.05)
+        # add colorbar
+        bar = plt.colorbar(contour_plot, pad=0.05)
         bar.set_label(kipp_args.identifier)
 
-        #add axis labels
+        # add axis labels
         if kipp_args.xaxis == "star_age":
-            axis.set_xlabel(r'$t$ ('+kipp_args.time_units+')')
+            axis.set_xlabel(r"$t$ (" + kipp_args.time_units + ")")
         else:
-            axis.set_xlabel(r'$Model Number$')
+            axis.set_xlabel(r"$Model Number$")
         if kipp_args.yaxis == "radius":
             if kipp_args.yaxis_normalize:
-                axis.set_ylabel(r'$r/R$')
-            else:   
-                axis.set_ylabel(r'$r/R_\odot$')
+                axis.set_ylabel(r"$r/R$")
+            else:
+                axis.set_ylabel(r"$r/R_\odot$")
         else:
             if kipp_args.yaxis_normalize:
-                axis.set_ylabel(r'$m/M$')
-            else:   
-                axis.set_ylabel(r'$m/M_\odot$')
+                axis.set_ylabel(r"$m/M$")
+            else:
+                axis.set_ylabel(r"$m/M_\odot$")
 
     if kipp_args.xlims != None:
         axis.set_xlim(kipp_args.xlims)
@@ -300,7 +340,6 @@ def kipp_plot(kipp_args, axis=None):
     if kipp_args.save_file:
         plt.savefig(kipp_args.save_filename)
 
-    Kipp_Plot = namedtuple('Kipp_Plot', 'contour_plot histories xlims')
+    Kipp_Plot = namedtuple("Kipp_Plot", "contour_plot histories xlims")
 
     return Kipp_Plot(contour_plot, mixing_zones.histories, xyz_data.xlims)
-
